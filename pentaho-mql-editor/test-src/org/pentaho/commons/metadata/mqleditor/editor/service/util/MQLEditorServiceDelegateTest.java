@@ -20,7 +20,14 @@ package org.pentaho.commons.metadata.mqleditor.editor.service.util;
 import org.junit.Assert;
 import org.junit.Test;
 import org.pentaho.commons.metadata.mqleditor.AggType;
+import org.pentaho.commons.metadata.mqleditor.MqlDomain;
+import org.pentaho.metadata.model.Domain;
 import org.pentaho.metadata.model.concept.types.AggregationType;
+import org.pentaho.metadata.model.concept.types.LocalizedString;
+import org.pentaho.metadata.repository.IMetadataDomainRepository;
+import org.pentaho.metadata.repository.InMemoryMetadataDomainRepository;
+
+import java.util.List;
 
 public class MQLEditorServiceDelegateTest {
   @Test
@@ -43,4 +50,44 @@ public class MQLEditorServiceDelegateTest {
 
     Assert.assertEquals( mqlESD.convertNewThinAggregationType( AggregationType.NONE ), AggType.NONE );
   }
+
+  @Test
+  public void testPPP_3873() throws Exception {
+    IMetadataDomainRepository repo = new InMemoryMetadataDomainRepository();
+
+    for (int i = 0; i < 500; i++) {
+      Domain domain = new Domain();
+      LocalizedString name = new LocalizedString();
+      name.setString("US", String.valueOf(i + 1));
+      domain.setId("name" + String.valueOf(i + 1));
+      domain.setName(name);
+      repo.storeDomain(domain, false);
+    }
+
+    MQLEditorServiceDelegate service = new MQLEditorServiceDelegate(repo);
+
+    Runnable readAction = new Runnable() {
+      public void run() {
+        List<MqlDomain> mqlDomains = service.getMetadataDomains();
+          for (int i = 0; i < mqlDomains.size(); i += 10) {
+            mqlDomains.remove(i);
+          }
+        }
+      };
+      Thread reader = new Thread(readAction);
+      reader.start();
+
+      List<MqlDomain> mqlDomains = service.refreshMetadataDomains();
+      for (final MqlDomain domain : mqlDomains) {
+        Runnable r = new Runnable() {
+          public void run() {
+            while (true) {
+              domain.getName();
+            }
+          }
+        };
+      Thread thr = new Thread(r);
+      thr.start();
+      }
+    }
 }

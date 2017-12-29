@@ -17,16 +17,6 @@
 
 package org.pentaho.commons.metadata.mqleditor.editor.service.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang.NotImplementedException;
 import org.pentaho.commons.metadata.mqleditor.AggType;
 import org.pentaho.commons.metadata.mqleditor.ColumnType;
@@ -69,6 +59,16 @@ import org.pentaho.pms.schema.SchemaMeta;
 import org.pentaho.pms.schema.concept.types.aggregation.AggregationSettings;
 import org.pentaho.pms.schema.concept.types.datatype.DataTypeSettings;
 import org.pentaho.pms.util.UniqueList;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 

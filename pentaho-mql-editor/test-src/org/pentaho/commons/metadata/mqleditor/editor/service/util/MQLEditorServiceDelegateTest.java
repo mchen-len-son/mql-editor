@@ -28,6 +28,8 @@ import org.pentaho.metadata.repository.IMetadataDomainRepository;
 import org.pentaho.metadata.repository.InMemoryMetadataDomainRepository;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MQLEditorServiceDelegateTest {
   @Test
@@ -51,43 +53,44 @@ public class MQLEditorServiceDelegateTest {
     Assert.assertEquals( mqlESD.convertNewThinAggregationType( AggregationType.NONE ), AggType.NONE );
   }
 
-  @Test
-  public void testPPP_3873() throws Exception {
-    IMetadataDomainRepository repo = new InMemoryMetadataDomainRepository();
+    @Test
+    public void testConcurrency() throws Exception {
+        //init repo
+        IMetadataDomainRepository repo = new InMemoryMetadataDomainRepository();
 
-    for (int i = 0; i < 500; i++) {
-      Domain domain = new Domain();
-      LocalizedString name = new LocalizedString();
-      name.setString("US", String.valueOf(i + 1));
-      domain.setId("name" + String.valueOf(i + 1));
-      domain.setName(name);
-      repo.storeDomain(domain, false);
-    }
-
-    MQLEditorServiceDelegate service = new MQLEditorServiceDelegate(repo);
-
-    Runnable readAction = new Runnable() {
-      public void run() {
-        List<MqlDomain> mqlDomains = service.getMetadataDomains();
-          for (int i = 0; i < mqlDomains.size(); i += 10) {
-            mqlDomains.remove(i);
-          }
+        for (int i = 0; i < 500; i++) {
+            Domain domain = new Domain();
+            LocalizedString name = new LocalizedString();
+            name.setString("US", String.valueOf(i + 1));
+            domain.setId("name" + String.valueOf(i + 1));
+            domain.setName(name);
+            repo.storeDomain(domain, false);
         }
-      };
-      Thread reader = new Thread(readAction);
-      reader.start();
 
-      List<MqlDomain> mqlDomains = service.refreshMetadataDomains();
-      for (final MqlDomain domain : mqlDomains) {
-        Runnable r = new Runnable() {
-          public void run() {
-            while (true) {
-              domain.getName();
+        MQLEditorServiceDelegate service = new MQLEditorServiceDelegate(repo);
+
+        Runnable addDomainAction = new Runnable() {
+            public void run() {
+                for (int i = 0; i < service.getMetadataDomains().size(); i++) {
+                    service.addThinDomain(String.valueOf(i + 1));
+                }
             }
-          }
         };
-      Thread thr = new Thread(r);
-      thr.start();
-      }
+        new Thread(addDomainAction).start();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+        executorService.execute(new Runnable() {
+            public void run() {
+                System.out.println("Asynchronous task");
+                List<MqlDomain> mqlDomains = service.getMetadataDomains();
+                for (final MqlDomain domain : mqlDomains) {
+                    domain.getName();
+                }
+            }
+        });
+        executorService.shutdown();
     }
+
 }
+
